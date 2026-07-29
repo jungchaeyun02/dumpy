@@ -1,12 +1,16 @@
 // Dumpy 데이터베이스 스키마
-// 개발: SQLite / 프로덕션: PostgreSQL
+// 개발·프로덕션 모두 PostgreSQL
+//
+// SQLite에서 옮겨온 이유: Vercel은 파일시스템이 휘발성이라 SQLite 파일이
+// 배포마다 사라진다. Prisma는 provider를 환경변수로 바꿀 수 없어서
+// (반드시 리터럴이어야 한다) 개발도 같은 provider를 써야 한다.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"  // 프로덕션에서는 "postgresql"로 변경
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

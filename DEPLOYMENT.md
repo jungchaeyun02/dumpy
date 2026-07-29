@@ -27,23 +27,30 @@ TOSS_MTLS_KEY_PATH="/path/to/key.pem"
 
 ### 2. 데이터베이스 설정
 
-```bash
-# Prisma 마이그레이션 실행
-npm run db:migrate
+PostgreSQL만 지원합니다. Prisma는 `provider`를 환경변수로 바꿀 수 없어서
+(리터럴이어야 함) 개발·프로덕션이 같은 종류를 써야 합니다.
+Vercel은 파일시스템이 휘발성이라 SQLite는 배포마다 데이터가 사라집니다.
 
-# 또는 개발 환경에서
-npm run db:push
+```bash
+# 스키마를 DB에 반영 (기존 마이그레이션을 그대로 적용)
+npm run db:deploy
+
+# 스키마를 고쳐서 새 마이그레이션을 만들 때만
+npm run db:migrate
 ```
 
 ### 3. 빌드 및 실행
 
 ```bash
-# 빌드
 npm run build
-
-# 프로덕션 실행
 npm run start
 ```
+
+Vercel에서는 `vercel-build` 스크립트가 대신 실행되어
+`prisma migrate deploy`로 마이그레이션을 먼저 적용한 뒤 빌드합니다.
+`postinstall`의 `prisma generate`는 Vercel이 의존성을 캐시해도
+Prisma Client가 항상 생성되도록 보장합니다. 이 두 줄이 없으면
+빌드가 실패하거나 낡은 클라이언트로 배포됩니다.
 
 ---
 
@@ -128,9 +135,61 @@ cron job으로 매일 실행:
 
 ### Vercel (권장)
 
-1. GitHub 저장소 연결
-2. 환경변수 설정
-3. 자동 배포
+배포 주소가 정해져야 카카오 Redirect URI를 등록할 수 있으므로,
+**한 번 배포해서 주소를 받은 뒤 로그인을 붙이는** 순서로 진행합니다.
+
+**1) PostgreSQL 준비**
+
+Neon / Supabase / Vercel Postgres 중 아무거나 (무료 티어로 충분).
+받은 연결 문자열이 `DATABASE_URL`이 됩니다.
+
+**2) 비밀키 생성**
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+두 번 실행해서 `JWT_SECRET`, `SESSION_SECRET`에 각각 넣습니다.
+
+**3) Vercel에 저장소 연결**
+
+vercel.com → Add New Project → GitHub 저장소 import.
+비공개 저장소는 Vercel에 접근 권한을 한 번 허용해야 합니다.
+
+**4) 환경변수 입력 후 첫 배포**
+
+이 시점에 넣을 것 (카카오는 아직 없어도 됩니다):
+
+```
+DATABASE_URL, JWT_SECRET, SESSION_SECRET
+```
+
+배포가 끝나면 `https://<프로젝트>.vercel.app` 주소가 나옵니다.
+마이그레이션은 `vercel-build`가 자동으로 적용합니다.
+
+**5) 카카오 로그인 연결**
+
+카카오 개발자 콘솔에서 받은 주소로 등록합니다.
+
+- 플랫폼 → Web → 사이트 도메인: `https://<프로젝트>.vercel.app`
+- 카카오 로그인 → 활성화 ON
+- Redirect URI: `https://<프로젝트>.vercel.app/api/auth/kakao/callback`
+
+Redirect URI는 글자 하나까지 같아야 합니다 (http/https, 끝 슬래시 포함).
+다르면 `KOE006` 오류가 납니다.
+
+**6) 나머지 환경변수 추가 후 재배포**
+
+```
+NEXT_PUBLIC_APP_URL   = https://<프로젝트>.vercel.app
+KAKAO_CLIENT_ID       = REST API 키 (JavaScript 키 아님)
+KAKAO_CLIENT_SECRET   = 콘솔에서 "사용함"으로 켠 경우에만
+KAKAO_REDIRECT_URI    = https://<프로젝트>.vercel.app/api/auth/kakao/callback
+```
+
+> 개발용 로그인(`/api/auth/dev`)은 프로덕션 빌드에서 화면과 번들 양쪽 모두
+> 제거되고 라우트도 403을 반환합니다. 배포본에서는 카카오가 유일한
+> 로그인 수단이므로 5~6단계를 마쳐야 로그인할 수 있습니다.
 
 ### 자체 서버
 

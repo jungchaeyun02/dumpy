@@ -7,8 +7,11 @@
 `.env` 파일을 생성하고 다음 값들을 설정하세요:
 
 ```bash
-# 필수
-DATABASE_URL="postgresql://user:password@host:5432/dumpy?sslmode=require"
+# 필수 - DB 연결 2개 (같은 DB, 다른 경로)
+#   DATABASE_URL : 앱용. 풀러 주소 (호스트에 -pooler)
+#   DIRECT_URL   : 마이그레이션용. 직결 주소 (-pooler 없음)
+DATABASE_URL="postgresql://user:password@ep-xxx-pooler.region.aws.neon.tech/neondb?sslmode=require"
+DIRECT_URL="postgresql://user:password@ep-xxx.region.aws.neon.tech/neondb?sslmode=require"
 JWT_SECRET="최소 32자 이상의 랜덤 문자열"
 SESSION_SECRET="최소 32자 이상의 랜덤 문자열"
 NEXT_PUBLIC_APP_URL="https://your-domain.com"

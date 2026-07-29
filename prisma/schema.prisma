@@ -11,7 +11,15 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+
+  // 앱이 쓰는 연결. Neon 등에서는 풀러(-pooler) 주소를 넣는다.
+  // 서버리스는 요청마다 연결이 늘어나므로 풀링이 없으면 연결 한도에 걸린다.
+  url = env("DATABASE_URL")
+
+  // 마이그레이션 전용 연결. 풀러를 거치지 않는 직결 주소를 넣는다.
+  // PgBouncer 같은 풀러는 트랜잭션·advisory lock 을 제대로 못 넘겨서
+  // migrate deploy 가 실패한다.
+  directUrl = env("DIRECT_URL")
 }
 
 // 사용자

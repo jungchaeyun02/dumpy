@@ -44,6 +44,12 @@ yarn-error.log*
 *.key
 certs/
 
+# 로컬 개발 DB (메모 내용이 들어있음 - 올리지 말 것)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
 # vercel
 .vercel
 

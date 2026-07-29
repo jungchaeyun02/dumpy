@@ -7,7 +7,10 @@ import { MEMO_MAX_LENGTH } from '@/lib/utils/constants';
 import type { Category } from '@/types';
 
 interface MemoInputProps {
-  onSave: (content: string, category: Category | null) => Promise<{ success: boolean; category?: Category }>;
+  onSave: (
+    content: string,
+    category: Category | null
+  ) => Promise<{ success: boolean; category?: Category; isFirstMemo?: boolean }>;
 }
 
 export function MemoInput({ onSave }: MemoInputProps) {
@@ -65,9 +68,11 @@ export function MemoInput({ onSave }: MemoInputProps) {
         setContent('');
         setSelectedCategory(null);
 
-        // 토스트 표시
+        // 토스트 표시 - 생애 첫 메모에만 다른 문구
         setToast({
-          message: messages.saveSuccess(result.category),
+          message: result.isFirstMemo
+            ? messages.firstSaveSuccess(result.category)
+            : messages.saveSuccess(result.category),
           category: result.category,
         });
 
@@ -92,7 +97,7 @@ export function MemoInput({ onSave }: MemoInputProps) {
   return (
     <div className="w-full">
       {/* 분류 칩 */}
-      <div className="mb-3">
+      <div className="mb-4">
         <CategoryChips
           selectedCategory={selectedCategory}
           onSelect={setSelectedCategory}
@@ -107,15 +112,13 @@ export function MemoInput({ onSave }: MemoInputProps) {
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={messages.inputPlaceholder}
-          className="w-full p-4 rounded-2xl bg-paper border-2 border-transparent
-                     focus:border-dumpy-orange focus:outline-none resize-none
-                     text-ink placeholder:text-ink/40 min-h-[100px]"
+          className="field p-4 pb-16 min-h-[128px]"
           rows={3}
           disabled={isSubmitting}
         />
 
         {/* 글자 수 표시 */}
-        <div className={`absolute bottom-3 left-4 text-sm ${isOverLimit ? 'text-red-500' : 'text-ink/40'}`}>
+        <div className={`absolute bottom-4 left-4 text-meta tabular-nums ${isOverLimit ? 'text-ink font-medium' : 'text-muted'}`}>
           {content.length > 0 && `${content.length.toLocaleString()} / ${MEMO_MAX_LENGTH.toLocaleString()}`}
         </div>
 
@@ -124,21 +127,21 @@ export function MemoInput({ onSave }: MemoInputProps) {
           type="button"
           onClick={handleSubmit}
           disabled={!content.trim() || isSubmitting || isOverLimit}
-          className="absolute bottom-3 right-3 btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+          className="absolute bottom-4 right-4 btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {messages.saveButton}
         </button>
       </div>
 
       {/* 단축키 안내 */}
-      <p className="text-sm text-ink/40 mt-2 text-right">
+      <p className="text-meta text-muted mt-2 text-right">
         Ctrl+Enter로 덤프
       </p>
 
       {/* 저장 토스트 */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-ink text-paper
-                        px-6 py-3 rounded-full shadow-lg flex items-center gap-4 animate-pop-out z-50">
+        <div className="toast fixed bottom-8 left-1/2 -translate-x-1/2
+                        px-6 py-4 flex items-center gap-4 text-meta animate-pop-out z-50">
           <span>{toast.message}</span>
           <button
             type="button"

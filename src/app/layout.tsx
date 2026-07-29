@@ -33,7 +33,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body className="min-h-full flex flex-col bg-cream text-ink">
+      <body className="min-h-full flex flex-col bg-canvas text-ink">
         {children}
       </body>
     </html>

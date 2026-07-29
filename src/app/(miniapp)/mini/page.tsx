@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { CategoryChips } from '@/components/ui/CategoryChip';
 import { MiniAppMemoSection } from '@/components/memo/MiniAppMemoSection';
-import { messages } from '@/lib/utils/messages';
+import { dumpyEmoji, messages } from '@/lib/utils/messages';
 import { MEMO_MAX_LENGTH } from '@/lib/utils/constants';
 import type { Category } from '@/types';
 import type { Memo } from '@prisma/client';
@@ -147,8 +147,13 @@ export default function MiniAppHome() {
         setContent('');
         setSelectedCategory(null);
 
-        // 토스트 표시
-        setToast(messages.saveSuccess(memoCategory as Category));
+        // 토스트 표시 - 생애 첫 메모이면서 덤피가 알아서 분류한 경우에만 다른 문구
+        const isFirstMemo = data.totalCount === 1 && data.data.classifiedBy === 'auto';
+        setToast(
+          isFirstMemo
+            ? messages.firstSaveSuccess(memoCategory as Category)
+            : messages.saveSuccess(memoCategory as Category)
+        );
         setTimeout(() => setToast(null), 5000);
 
         textareaRef.current?.focus();
@@ -165,9 +170,9 @@ export default function MiniAppHome() {
     }
   };
 
-  // 할 일 완료 토글
-  const handleToggleDone = async (id: string, isDone: boolean) => {
-    if (!authToken) return;
+  // 할 일 완료 토글 — 성공 여부를 돌려줘야 실패 시 항목을 되살릴 수 있다
+  const handleToggleDone = async (id: string, isDone: boolean): Promise<boolean> => {
+    if (!authToken) return false;
 
     try {
       const res = await fetch(`/api/memos/${id}`, {
@@ -189,9 +194,22 @@ export default function MiniAppHome() {
           setTimeout(() => setToast(null), 3000);
         }
       }
+
+      return res.ok;
     } catch (error) {
       console.error('상태 변경 실패:', error);
+      return false;
     }
+  };
+
+  // 로그아웃 — 미니앱은 쿠키가 아니라 localStorage의 토큰으로 인증하므로
+  // 서버를 부를 필요 없이 토큰만 지우면 된다
+  const handleLogout = () => {
+    localStorage.removeItem('dumpy_token');
+    setAuthToken(null);
+    setMemos({ 할일: [], 일기: [], 모아둔것: [], 그외: [] });
+    setContent('');
+    setSelectedCategory(null);
   };
 
   // 토스 로그인
@@ -204,7 +222,7 @@ export default function MiniAppHome() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-ink/60">불러오는 중...</div>
+        <div className="text-body text-muted">불러오는 중...</div>
       </div>
     );
   }
@@ -213,19 +231,25 @@ export default function MiniAppHome() {
   if (!authToken) {
     return (
       <div className="min-h-screen flex flex-col">
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-          <h1 className="text-3xl font-bold text-dumpy-orange mb-2">덤피</h1>
-          <p className="text-ink/60 mb-8">{messages.onboarding}</p>
+        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+          <div className="flex items-center gap-2 mb-8">
+            <span className="text-[56px] leading-none" aria-hidden="true">{dumpyEmoji}</span>
+            <div className="text-left">
+              <h1 className="text-3xl font-bold tracking-tight text-ink">덤피</h1>
+              <p className="text-meta text-muted">{messages.tagline}</p>
+            </div>
+          </div>
+          <p className="text-body text-muted mb-8">{messages.onboarding}</p>
           <button onClick={handleTossLogin} className="btn-primary">
             시작하기
           </button>
         </div>
 
-        <footer className="p-4 text-center text-xs text-ink/40">
+        <footer className="px-6 py-8 text-center text-meta text-muted">
           <p>{messages.privacyNotice}</p>
-          <div className="mt-2 flex justify-center gap-4">
-            <a href="/privacy" className="hover:underline">개인정보 처리방침</a>
-            <a href="/terms" className="hover:underline">이용약관</a>
+          <div className="mt-4 flex justify-center gap-4">
+            <a href="/privacy" className="link-quiet">개인정보 처리방침</a>
+            <a href="/terms" className="link-quiet">이용약관</a>
           </div>
         </footer>
       </div>
@@ -238,9 +262,18 @@ export default function MiniAppHome() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* 입력 영역 (상단 고정) */}
-      <div className="sticky top-0 z-10 bg-cream p-4 border-b border-ink/10">
+      <div className="sticky top-0 z-10 bg-canvas px-4 py-4 border-b border-line">
+        {/* 로고 */}
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-[32px] leading-none" aria-hidden="true">{dumpyEmoji}</span>
+          <div>
+            <h1 className="text-title font-bold tracking-tight text-ink">덤피</h1>
+            <p className="text-meta text-muted">{messages.tagline}</p>
+          </div>
+        </div>
+
         {/* 분류 칩 */}
-        <div className="mb-3">
+        <div className="mb-4">
           <CategoryChips
             selectedCategory={selectedCategory}
             onSelect={setSelectedCategory}
@@ -254,9 +287,7 @@ export default function MiniAppHome() {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder={messages.inputPlaceholder}
-            className="w-full p-3 pr-20 rounded-xl bg-paper border-2 border-transparent
-                       focus:border-dumpy-orange focus:outline-none resize-none
-                       text-ink placeholder:text-ink/40 text-sm"
+            className="field p-4 pb-16"
             rows={2}
             disabled={isSubmitting}
           />
@@ -266,8 +297,8 @@ export default function MiniAppHome() {
             type="button"
             onClick={handleSave}
             disabled={!content.trim() || isSubmitting || isOverLimit}
-            className="absolute bottom-2 right-2 btn-primary text-sm py-2 px-4
-                       disabled:opacity-50 disabled:cursor-not-allowed"
+            className="absolute bottom-4 right-4 btn-primary text-meta py-2 px-4
+                       disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {messages.saveButton}
           </button>
@@ -275,7 +306,7 @@ export default function MiniAppHome() {
 
         {/* 글자 수 초과 경고 */}
         {isOverLimit && (
-          <p className="text-xs text-red-500 mt-1">{messages.contentTooLong}</p>
+          <p className="text-meta text-ink font-medium mt-2">{messages.contentTooLong}</p>
         )}
       </div>
 
@@ -301,25 +332,28 @@ export default function MiniAppHome() {
 
         {/* 완료함 링크 */}
         <div className="text-center py-2">
-          <a href="/mini/done" className="text-sm text-dumpy-orange">
+          <a href="/mini/done" className="link-quiet text-meta">
             {messages.viewCompleted}
           </a>
         </div>
       </div>
 
       {/* 푸터 */}
-      <footer className="p-3 text-center text-xs text-ink/40 border-t border-ink/10">
+      <footer className="px-4 py-4 text-center text-meta text-muted border-t border-line">
         <div className="flex justify-center gap-4">
-          <a href="/privacy" className="hover:underline">개인정보 처리방침</a>
-          <a href="/terms" className="hover:underline">이용약관</a>
-          <button className="hover:underline text-red-400">탈퇴</button>
+          <a href="/privacy" className="link-quiet">개인정보 처리방침</a>
+          <a href="/terms" className="link-quiet">이용약관</a>
+          <button type="button" onClick={handleLogout} className="link-quiet">
+            {messages.logout}
+          </button>
+          <button className="link-quiet">탈퇴</button>
         </div>
       </footer>
 
       {/* 토스트 */}
       {toast && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-ink text-paper
-                        px-4 py-2 rounded-full shadow-lg text-sm animate-pop-out z-50">
+        <div className="toast fixed bottom-24 left-1/2 -translate-x-1/2
+                        px-6 py-4 text-meta animate-pop-out z-50">
           {toast}
         </div>
       )}

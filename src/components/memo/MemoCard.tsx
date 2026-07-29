@@ -1,12 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import type { Category } from '@/types';
 import type { Memo } from '@prisma/client';
-import { categoryLabel, messages, todoSubLabel } from '@/lib/utils/messages';
+import { categoryEmoji, categoryLabel, messages, todoSubLabel } from '@/lib/utils/messages';
+
+// 완료 처리는 성공 여부를 돌려준다. false면 사라지던 항목을 되살린다.
+type ToggleDone = (id: string, isDone: boolean) => void | Promise<boolean | void>;
 
 interface MemoCardProps {
   memo: Memo;
-  onToggleDone?: (id: string, isDone: boolean) => void;
+  onToggleDone?: ToggleDone;
   onDelete?: (id: string) => void;
   onClick?: (memo: Memo) => void;
 }
@@ -17,31 +21,65 @@ function formatDate(date: Date): string {
   return `${(d.getMonth() + 1).toString().padStart(2, '0')}.${d.getDate().toString().padStart(2, '0')}`;
 }
 
+// 완료 표시 후 목록에서 빠지기까지의 시간
+const LEAVE_DELAY_MS = 300;
+
+// 클릭 시점에 확인한다 (렌더 중에 읽으면 SSR 결과와 어긋난다)
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
 /**
  * 할 일 메모 아이템
  */
 function TodoMemoItem({ memo, onToggleDone, onClick }: MemoCardProps) {
+  // 완료를 누르면 줄이 그어진 채로 잠깐 남았다가 목록에서 빠진다
+  const [isLeaving, setIsLeaving] = useState(false);
+  const isStruck = memo.isDone || isLeaving;
+
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isLeaving) return;
+
+    // 되돌리는 방향은 기다릴 이유가 없다
+    if (memo.isDone) {
+      onToggleDone?.(memo.id, false);
+      return;
+    }
+
+    setIsLeaving(true);
+    const delay = prefersReducedMotion() ? 0 : LEAVE_DELAY_MS;
+    window.setTimeout(async () => {
+      const ok = await onToggleDone?.(memo.id, true);
+      // 저장이 실패하면 사라진 채로 자리만 차지하게 두지 않는다
+      if (ok === false) setIsLeaving(false);
+    }, delay);
+  };
+
   return (
     <div
-      className="flex items-start gap-3 py-2 cursor-pointer hover:bg-cream/50 rounded-lg px-2 -mx-2"
+      className={`row memo-in flex items-start gap-2 px-2 -mx-2 py-2 cursor-pointer
+                  ${isLeaving ? 'memo-leaving' : ''}`}
       onClick={() => onClick?.(memo)}
     >
       <button
         type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleDone?.(memo.id, !memo.isDone);
-        }}
-        className={`w-5 h-5 rounded border-2 flex-shrink-0 mt-0.5
-                    ${memo.isDone ? 'bg-dumpy-orange border-dumpy-orange' : 'border-ink/30'}`}
+        onClick={handleToggle}
+        className={`checkbox translate-y-[2px] ${isStruck ? 'checkbox-checked' : ''}`}
       >
-        {memo.isDone && (
-          <svg className="w-full h-full text-white" viewBox="0 0 20 20" fill="currentColor">
+        {isStruck && (
+          <svg className="w-full h-full" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
         )}
       </button>
-      <span className={`flex-1 ${memo.isDone ? 'line-through text-ink/40' : ''}`}>
+      <span
+        className={`flex-1 text-body transition-colors duration-200
+                    ${isStruck ? 'line-through text-muted' : 'text-ink'}`}
+      >
         {memo.content}
       </span>
     </div>
@@ -54,13 +92,13 @@ function TodoMemoItem({ memo, onToggleDone, onClick }: MemoCardProps) {
 function DiaryMemoItem({ memo, onClick }: MemoCardProps) {
   return (
     <div
-      className="py-2 cursor-pointer hover:bg-cream/50 rounded-lg px-2 -mx-2"
+      className="row memo-in px-2 -mx-2 py-2 cursor-pointer"
       onClick={() => onClick?.(memo)}
     >
-      <div className="text-sm text-dumpy-orange font-medium mb-1">
+      <div className="text-meta text-muted font-medium">
         {formatDate(memo.createdAt)}
       </div>
-      <div className="text-ink line-clamp-2">
+      <div className="text-body text-ink line-clamp-2">
         {memo.content}
       </div>
     </div>
@@ -78,14 +116,14 @@ function CollectedMemoItem({ memo, onClick }: MemoCardProps) {
 
   return (
     <div
-      className="bg-cream rounded-xl p-3 cursor-pointer hover:shadow-md transition-shadow"
+      className="tile memo-in p-2 cursor-pointer"
       onClick={() => onClick?.(memo)}
     >
-      <div className="text-sm line-clamp-2 font-medium">
+      <div className="text-meta text-ink font-medium line-clamp-2">
         {title}
       </div>
       {url && (
-        <div className="text-xs text-ink/40 mt-1 truncate">
+        <div className="text-meta text-muted truncate">
           {new URL(url).hostname}
         </div>
       )}
@@ -99,11 +137,11 @@ function CollectedMemoItem({ memo, onClick }: MemoCardProps) {
 function EtcMemoItem({ memo, onClick }: MemoCardProps) {
   return (
     <div
-      className="flex items-start gap-2 py-2 cursor-pointer hover:bg-cream/50 rounded-lg px-2 -mx-2"
+      className="row memo-in flex items-start gap-2 px-2 -mx-2 py-2 cursor-pointer"
       onClick={() => onClick?.(memo)}
     >
-      <span className="text-ink/40">·</span>
-      <span className="flex-1 line-clamp-1">{memo.content}</span>
+      <span className="text-muted" aria-hidden="true">·</span>
+      <span className="flex-1 text-body text-ink line-clamp-1">{memo.content}</span>
     </div>
   );
 }
@@ -114,7 +152,7 @@ function EtcMemoItem({ memo, onClick }: MemoCardProps) {
 interface MemoSectionProps {
   category: Category;
   memos: Memo[];
-  onToggleDone?: (id: string, isDone: boolean) => void;
+  onToggleDone?: ToggleDone;
   onDelete?: (id: string) => void;
   onMemoClick?: (memo: Memo) => void;
   maxDisplay?: number;
@@ -138,25 +176,30 @@ export function MemoSection({
   const isEmpty = memos.length === 0;
 
   return (
-    <div className="card p-5 h-full flex flex-col">
+    <div className="card p-6 h-full flex flex-col">
       {/* 헤더 */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold">{categoryLabel[category]}</h2>
+      <div className="flex items-baseline justify-between gap-2 mb-4">
+        <h2 className="text-title font-bold text-ink flex items-center gap-2">
+          <span className="text-[20px] leading-none" aria-hidden="true">
+            {categoryEmoji[category]}
+          </span>
+          {categoryLabel[category]}
+        </h2>
         {memos.length > 0 && (
-          <span className="text-sm text-ink/60">{memos.length}개</span>
+          <span className="text-meta text-muted tabular-nums">{memos.length}개</span>
         )}
       </div>
 
       {/* 내용 */}
       <div className="flex-1 overflow-y-auto">
         {isEmpty ? (
-          <p className="text-ink/40 text-sm">{messages.emptyState[category]}</p>
+          <p className="text-meta text-muted">{messages.emptyState[category]}</p>
         ) : category === '할일' ? (
           // 할 일: 기한 있음/없음 분류
           <div className="space-y-4">
             {todosWithDeadline.length > 0 && (
               <div>
-                <div className="text-xs text-dumpy-orange font-medium mb-2">
+                <div className="text-meta text-muted font-medium mb-2">
                   {todoSubLabel.withDeadline}
                 </div>
                 {todosWithDeadline.map((memo) => (
@@ -171,7 +214,7 @@ export function MemoSection({
             )}
             {todosWithoutDeadline.length > 0 && (
               <div>
-                <div className="text-xs text-ink/40 font-medium mb-2">
+                <div className="text-meta text-muted font-medium mb-2">
                   {todoSubLabel.someday}
                 </div>
                 {todosWithoutDeadline.map((memo) => (
@@ -213,7 +256,7 @@ export function MemoSection({
       {remainingCount > 0 && (
         <button
           type="button"
-          className="mt-4 text-sm text-dumpy-orange hover:underline text-left"
+          className="link-quiet mt-4 text-meta text-left"
         >
           {messages.moreItems(remainingCount)}
         </button>

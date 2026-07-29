@@ -57,46 +57,46 @@ export default function DonePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-cream">
-        <div className="text-ink/60">불러오는 중...</div>
+      <div className="min-h-screen flex items-center justify-center bg-canvas">
+        <div className="text-body text-muted">불러오는 중...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-canvas">
       {/* 헤더 */}
-      <header className="p-6 border-b border-ink/10">
-        <div className="max-w-2xl mx-auto flex items-center gap-4">
-          <a href="/" className="text-ink/60 hover:text-ink">←</a>
-          <h1 className="text-xl font-bold">끝낸 것</h1>
+      <header className="border-b border-line">
+        <div className="max-w-2xl mx-auto px-6 py-4 flex items-center gap-4">
+          <a href="/" className="link-quiet text-title leading-none">←</a>
+          <h1 className="text-title font-bold text-ink">끝낸 것</h1>
         </div>
       </header>
 
       {/* 내용 */}
-      <main className="p-6">
+      <main className="px-6 py-8">
         <div className="max-w-2xl mx-auto">
           {memos.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-ink/40">아직 끝낸 게 없어</p>
-              <p className="text-ink/40 text-sm mt-2">할 일을 완료하면 여기 나타나</p>
+            <div className="text-center py-16">
+              <p className="text-body text-muted">아직 끝낸 게 없어</p>
+              <p className="text-meta text-muted mt-2">할 일을 완료하면 여기 나타나</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {memos.map((memo) => (
                 <div
                   key={memo.id}
                   className="card p-4 flex items-start justify-between gap-4"
                 >
                   <div className="flex-1">
-                    <p className="text-ink line-through opacity-60">{memo.content}</p>
-                    <p className="text-xs text-ink/40 mt-1">
+                    <p className="text-body text-muted line-through">{memo.content}</p>
+                    <p className="text-meta text-muted mt-2">
                       {memo.doneAt && formatDate(memo.doneAt)} 완료
                     </p>
                   </div>
                   <button
                     onClick={() => handleUndo(memo.id)}
-                    className="text-sm text-dumpy-orange hover:underline flex-shrink-0"
+                    className="link-quiet text-meta flex-shrink-0"
                   >
                     {messages.undoComplete}
                   </button>

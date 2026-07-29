@@ -105,8 +105,8 @@ export async function POST(request: NextRequest) {
       hasDeadline = classification.hasDeadline;
     }
 
-    // 메모 저장
-    const memo = await createMemo(session.userId, {
+    // 메모 저장 (저장 후의 전체 개수도 함께 받는다)
+    const { memo, totalCount } = await createMemo(session.userId, {
       content: trimmedContent,
       category: finalCategory,
       classifiedBy,
@@ -115,8 +115,11 @@ export async function POST(request: NextRequest) {
       hasDeadline,
     });
 
+    // totalCount가 1이면 이 사용자의 생애 첫 메모.
+    // 개수 판정은 서버에서만 한다 - 클라이언트가 세면 목록에 안 담긴
+    // 완료·삭제 메모를 놓쳐서 첫 메모가 아닌데도 1이 될 수 있다.
     return Response.json(
-      { success: true, data: memo },
+      { success: true, data: memo, totalCount },
       {
         status: 201,
         headers: {

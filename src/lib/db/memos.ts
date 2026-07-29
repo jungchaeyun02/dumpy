@@ -28,6 +28,13 @@ export function toPrismaCategory(input: CategoryInput): CategoryDb {
 }
 
 // 메모 생성
+//
+// 저장 직후의 전체 메모 개수를 함께 돌려준다. '생애 첫 메모'인지 판정하는 데 쓴다.
+// 삭제·완료된 것까지 전부 센다 - 한 번 쓰고 지운 사람에게 다시 "첫 메모"라고
+// 하면 안 되므로 deletedAt/isDone으로 거르지 않는다.
+//
+// 한 트랜잭션으로 묶는 이유: create와 count가 떨어져 있으면 동시에 두 건이
+// 저장될 때 둘 다 2를 보고 아무도 첫 메모가 되지 못한다.
 export async function createMemo(
   userId: string, // 필수!
   data: {
@@ -39,17 +46,22 @@ export async function createMemo(
     hasDeadline: boolean;
   }
 ) {
-  return prisma.memo.create({
-    data: {
-      userId,
-      content: data.content,
-      category: toPrismaCategory(data.category),
-      classifiedBy: data.classifiedBy,
-      autoCategory: data.autoCategory ? toPrismaCategory(data.autoCategory) : null,
-      confidence: data.confidence,
-      hasDeadline: data.hasDeadline,
-    },
-  });
+  const [memo, totalCount] = await prisma.$transaction([
+    prisma.memo.create({
+      data: {
+        userId,
+        content: data.content,
+        category: toPrismaCategory(data.category),
+        classifiedBy: data.classifiedBy,
+        autoCategory: data.autoCategory ? toPrismaCategory(data.autoCategory) : null,
+        confidence: data.confidence,
+        hasDeadline: data.hasDeadline,
+      },
+    }),
+    prisma.memo.count({ where: { userId } }),
+  ]);
+
+  return { memo, totalCount };
 }
 
 // 사용자의 모든 메모 조회 (삭제되지 않은 것만)

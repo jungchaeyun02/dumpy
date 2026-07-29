@@ -17,11 +17,24 @@ import type { Category, ClassificationResult } from '@/types';
 
 // ========== 신호 정의 ==========
 
-// 할 일 신호
+// 할 일 신호 - '~기' 명사형이 아닌 것들
 const TODO_ACTION_ENDINGS = [
-  '하기', '사기', '보내기', '챙기기', '해야', '가야', '할 것', '할것',
-  '해야지', '가야지', '해야함', '해야함', '할거', '할게',
+  '해야', '가야', '할 것', '할것', '해야지', '가야지', '해야함', '할거', '할게',
 ];
+
+/**
+ * '~기' 명사형은 어느 동사에나 붙는 규칙이므로 동사를 나열하지 않고 형태로 잡는다.
+ * (먹기·읽기·버리기·자르기… 를 일일이 적으면 빠진 동사가 계속 생긴다)
+ *
+ * 단어 '끝'에서만 인정하는 게 핵심이다. 조사가 붙으면 명사이지 명사형이 아니다:
+ *   '우유 사기'        -> 토큰 '사기'가 기로 끝남  -> 할 일
+ *   '팀 사기가 떨어졌다' -> 토큰 '사기가'는 기로 안 끝남 -> 할 일 아님
+ */
+const NOT_VERB_NOUNS = new Set([
+  '감기', '이야기', '일기', '아기', '경기', '학기', '크기', '향기', '인기', '후기',
+  '여기', '저기', '거기', '계기', '세기', '용기', '악기', '무기', '전기', '연기',
+  '장기', '초기', '말기', '대기', '공기', '환기', '시기', '포기', '동기', '자기',
+]);
 
 const TODO_ACTION_NOUNS = [
   '제출', '마감', '신청', '예약', '결제', '전화', '확인', '준비', '등록', '반납',
@@ -50,12 +63,40 @@ const COLLECTION_SIGNALS = [
   '보러', '들으러', '먹으러',
 ];
 
-// 일기 신호 - 과거형 종결
-const PAST_ENDINGS = [
-  '했다', '였다', '았다', '었다', '더라', '네', '군', '구나',
-  '했음', '였음', '았음', '었음', '했네', '였네',
-  '했어', '였어', '았어', '었어',
-];
+/**
+ * 일기 신호 - 과거형/감탄 종결
+ *
+ * 반드시 '문장 끝'에서만 인정한다. includes()로 검사하면 한 글자짜리
+ * '네'·'군'이 단어 한가운데서 걸려서 엉뚱한 메모가 일기로 간다:
+ *   네이버 / 동네 / 네트워크 / 군만두 / 군대
+ */
+// ㅆ 받침을 쓰지 않는 종결 어미
+const PAST_ENDING_REGEX = /(더라|구나|네요|군요|네|군)$/;
+
+// '네'·'군'으로 끝나지만 종결 어미가 아닌 말
+const NOT_ENDING_NOUNS = new Set(['동네', '그네', '예비군', '아군', '적군']);
+
+/**
+ * 과거 시제 표지 감지
+ *
+ * 한국어 과거형은 어미 앞 음절에 ㅆ 받침을 남긴다. 축약형도 마찬가지라
+ * 어미를 나열하지 않고 받침으로 잡는다:
+ *   했다 였다 았다 었다 / 갔다 왔다 봤다 졌다 줬다 났다 샀다 썼다 …
+ *
+ * '했다·였다·았다·었다' 네 개만 적어두면 '떨어졌다'처럼 축약된 형태를 놓친다.
+ */
+const JONGSEONG_SSANGSIOT = 20;
+const PAST_FINAL_CHARS = '다어음네지';
+
+function hasPastTenseMarker(word: string): boolean {
+  if (word.length < 2) return false;
+  if (!PAST_FINAL_CHARS.includes(word[word.length - 1])) return false;
+
+  const beforeEnding = word.charCodeAt(word.length - 2);
+  if (beforeEnding < 0xac00 || beforeEnding > 0xd7a3) return false;
+
+  return (beforeEnding - 0xac00) % 28 === JONGSEONG_SSANGSIOT;
+}
 
 // 일기 신호 - 감정어
 const EMOTION_WORDS = [
@@ -67,18 +108,37 @@ const EMOTION_WORDS = [
 
 // ========== 판정 함수 ==========
 
+// 토큰 끝에 붙은 문장부호 제거
+function stripPunctuation(token: string): string {
+  return token.replace(/[.,!?~…)\]"']+$/, '');
+}
+
+function tokenize(content: string): string[] {
+  return content.trim().split(/\s+/).map(stripPunctuation).filter(Boolean);
+}
+
+/**
+ * '~기' 동사 명사형이 들어있는지
+ * 단어 끝이 '기'이고, 그 단어가 '기'로 끝나는 명사가 아니면 명사형으로 본다
+ */
+function hasNominalVerbForm(content: string): boolean {
+  return tokenize(content).some(
+    (word) => word.length >= 2 && word.endsWith('기') && !NOT_VERB_NOUNS.has(word)
+  );
+}
+
 /**
  * 할 일 신호 감지
  */
 function detectTodoSignals(content: string): number {
   let signalCount = 0;
 
-  // 행동 어미 체크
-  for (const ending of TODO_ACTION_ENDINGS) {
-    if (content.includes(ending)) {
-      signalCount++;
-      break; // 하나만 세기
-    }
+  // 행동 어미 체크 ('~기' 명사형 또는 '해야/할게' 같은 의지 표현)
+  if (
+    hasNominalVerbForm(content) ||
+    TODO_ACTION_ENDINGS.some((ending) => content.includes(ending))
+  ) {
+    signalCount++;
   }
 
   // 행동 명사 체크
@@ -149,12 +209,14 @@ function detectCollectionSignals(content: string): number {
 function detectDiarySignals(content: string): number {
   let signalCount = 0;
 
-  // 과거형 종결 체크
-  for (const ending of PAST_ENDINGS) {
-    if (content.includes(ending)) {
-      signalCount++;
-      break;
-    }
+  // 과거형/감탄 종결 체크 - 마지막 낱말에서만
+  const tokens = tokenize(content);
+  const lastWord = tokens[tokens.length - 1] ?? '';
+  if (
+    !NOT_ENDING_NOUNS.has(lastWord) &&
+    (hasPastTenseMarker(lastWord) || PAST_ENDING_REGEX.test(lastWord))
+  ) {
+    signalCount++;
   }
 
   // 감정어 체크

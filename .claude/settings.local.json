@@ -2,7 +2,27 @@
   "permissions": {
     "allow": [
       "Bash(git init *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git config *)",
+      "Bash(git commit -q -m '디자인 수정 전 상태 *)",
+      "Bash(node -e \"console.log\\(require\\('E:/dumpy_memo/node_modules/next/package.json'\\).version\\)\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\);console.log\\(JSON.stringify\\({d:p.dependencies,dd:p.devDependencies},null,1\\)\\)\")",
+      "Bash(node -e \"console.log\\(require\\('tailwindcss/package.json'\\).version\\)\")",
+      "Bash(npx next *)",
+      "Bash(:)",
+      "Bash(curl -s http://localhost:3000/_next/static/chunks/src_app_globals_162hn9o.css -o __TRACKED_VAR__/g.css)",
+      "Bash(node -e ' *)",
+      "Bash(npx eslint *)",
+      "Bash(echo \"=== exit: $? ===\")",
+      "Bash(git stash *)",
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\).on\\('end',\\(\\)=>{const r=JSON.parse\\(d\\);let e=0,w=0;for\\(const f of r\\)for\\(const m of f.messages\\)m.severity===2?e++:w++;console.log\\('errors:',e,' warnings:',w\\)}\\)\")",
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\).on\\('end',\\(\\)=>{const r=JSON.parse\\(d\\);let e=0,w=0;for\\(const f of r\\)for\\(const m of f.messages\\)m.severity===2?e++:w++;console.log\\('errors:',e,'  warnings:',w,' \\(baseline was 9 / 7\\)'\\)}\\)\")",
+      "Bash(npx tsx -e ' *)",
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\).on\\('end',\\(\\)=>{const r=JSON.parse\\(d\\);let e=0,w=0;const nw=[];for\\(const f of r\\)for\\(const m of f.messages\\){m.severity===2?e++:w++;}console.log\\('errors:',e,' warnings:',w\\)}\\)\")",
+      "Bash(curl -s -o /dev/null -w \"  GET  /api/auth/logout -> %{http_code}\\\\n\" http://localhost:3000/api/auth/logout)",
+      "Bash(curl -s -X POST http://localhost:3000/api/auth/logout -w \"  <- status=%{http_code}\\\\n\")",
+      "Bash(npx tsx *)",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }

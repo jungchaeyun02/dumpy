@@ -1,15 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  /* Dumpy Brand Colors */
+  /* 포인트 색 — 덤프 버튼과 선택된 칩에만 */
   --dumpy-orange: #FF6B1A;
+  --dumpy-orange-hover: #F05F0E;
+  --dumpy-orange-active: #DB5609;
+  /* 아주 드물게 (토스트의 '칸 바꾸기' 한 곳) */
   --dumpy-yellow: #FFC53D;
-  --cream: #FFF6E5;
-  --paper: #FFFFFF;
-  --ink: #241C14;
-  --pop: #6C4CF1;
 
-  --background: var(--cream);
+  /* 바탕 색 — 화면의 대부분.
+     페이지는 연한 크림, 카드는 흰색. 둘의 명도 차이로 칸이 떠 보인다.
+     크림 톤 조절은 --canvas 한 줄만 바꾸면 전체에 반영된다.
+       #FFF6E5 진한 크림 (기본) / #FFFAF0 옅게 / #FDF2DE 더 진하게 */
+  --canvas: #FFF6E5; /* 페이지 배경 — 노랑·주황 계열 연한 크림 */
+  --paper: #FFFFFF;  /* 카드/칸 바탕 */
+  --line: #ECEAE5;   /* 테두리 */
+  --line-strong: #DDD6C6; /* 테두리 hover */
+  --wash: #FFFAF0;   /* 칸 안쪽 타일 · 행 hover — 흰 카드와 크림 사이 */
+  --ink: #2B2620;    /* 본문 글자 */
+  --muted: #9A938A;  /* 보조 글자 */
+
+  --background: var(--canvas);
   --foreground: var(--ink);
 }
 
@@ -18,67 +29,268 @@
   --color-foreground: var(--foreground);
   --color-dumpy-orange: var(--dumpy-orange);
   --color-dumpy-yellow: var(--dumpy-yellow);
-  --color-cream: var(--cream);
+  --color-canvas: var(--canvas);
   --color-paper: var(--paper);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-wash: var(--wash);
   --color-ink: var(--ink);
-  --color-pop: var(--pop);
+  --color-muted: var(--muted);
 
-  /* Border radius - 둥근 모서리 */
+  /* 글자 — 칸 제목 20 / 본문 15 / 보조 13, 줄 간격 1.6 */
+  --text-title: 20px;
+  --text-title--line-height: 1.4;
+  --text-body: 15px;
+  --text-body--line-height: 1.6;
+  --text-meta: 13px;
+  --text-meta--line-height: 1.6;
+
+  /* 모서리 — 카드 16px, 버튼과 칩은 알약 */
   --radius-card: 16px;
-  --radius-button: 24px;
-  --radius-chip: 9999px;
+  --radius-tile: 12px;
+  --radius-pill: 9999px;
+
+  /* 그림자 — 낮고 부드럽게 */
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.04);
+  /* hover 시 한 단계만 진하게 */
+  --shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.06), 0 8px 20px rgba(0, 0, 0, 0.06);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+@layer base {
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif,
+      'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* 링크·버튼 포커스 — 주황 대신 중립 잉크 */
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
 }
 
-/* 버튼 및 칩 공통 스타일 */
-.btn-primary {
-  background-color: var(--dumpy-orange);
-  color: white;
-  border-radius: var(--radius-button);
-  padding: 12px 24px;
-  font-weight: 600;
-  transition: transform 0.1s ease;
-}
+/* 아래 컴포넌트 클래스는 components 레이어에 둔다.
+   그래야 유틸리티 클래스(text-meta, py-2 …)로 덮어쓸 수 있다. */
+@layer components {
 
-.btn-primary:hover {
-  transform: scale(1.02);
-}
-
-.btn-primary:active {
-  transform: scale(0.98);
-}
-
-/* 카드 스타일 */
+/* 카드 / 칸 — hover 시 2px 떠오름 */
 .card {
   background-color: var(--paper);
+  border: 1px solid var(--line);
   border-radius: var(--radius-card);
-  box-shadow: 4px 4px 0 rgba(36, 28, 20, 0.1);
+  box-shadow: var(--shadow-soft);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-/* 분류 칩 스타일 */
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+}
+
+/* 칸 안쪽 타일 — 중첩되므로 모서리는 한 단계 작게 */
+.tile {
+  background-color: var(--wash);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-tile);
+  transition: border-color 0.15s ease, background-color 0.15s ease,
+    box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.tile:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+}
+
+/* 목록 행 hover — 테두리가 없으니 타일보다 진한 크림으로 */
+.row {
+  border-radius: var(--radius-tile);
+  transition: background-color 0.15s ease;
+}
+
+.row:hover {
+  background-color: var(--canvas);
+}
+
+/* 덤프 버튼 — 화면에서 유일하게 주황으로 채워지는 면 */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--dumpy-orange);
+  color: #FFFFFF;
+  border: 1px solid var(--dumpy-orange);
+  border-radius: var(--radius-pill);
+  padding: 8px 24px;
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 600;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--dumpy-orange-hover);
+  border-color: var(--dumpy-orange-hover);
+}
+
+.btn-primary:active:not(:disabled) {
+  background-color: var(--dumpy-orange-active);
+  border-color: var(--dumpy-orange-active);
+}
+
+/* 카카오 로그인 — 카카오 브랜드 규정을 따른다.
+   배경 #FEE500, 글자/심볼 #191600, 테두리 없음. 이 색은 덤피 팔레트가 아니라
+   카카오 지정색이므로 토큰으로 빼지 않고 여기에 직접 쓴다. */
+.btn-kakao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #FEE500;
+  color: #191600;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 16px 24px;
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 600;
+  transition: background-color 0.15s ease;
+}
+
+.btn-kakao:hover {
+  background-color: #F4DC00;
+}
+
+.btn-kakao:active {
+  background-color: #E6CF00;
+}
+
+/* 보조 버튼 — 흰 바탕 + 테두리 */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  padding: 8px 24px;
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 600;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--wash);
+  border-color: var(--line-strong);
+}
+
+/* 조용한 텍스트 링크 — 회색에서 잉크로 */
+.link-quiet {
+  color: var(--muted);
+  transition: color 0.15s ease;
+}
+
+.link-quiet:hover {
+  color: var(--ink);
+}
+
+/* 입력창 */
+.field {
+  width: 100%;
+  background-color: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.6;
+  resize: none;
+  transition: border-color 0.15s ease;
+}
+
+.field::placeholder {
+  color: var(--muted);
+}
+
+.field:focus,
+.field:focus-visible {
+  outline: none;
+  border-color: var(--ink);
+}
+
+/* 분류 칩 — 알약 */
 .chip {
-  border-radius: var(--radius-chip);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
   padding: 8px 16px;
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.6;
   font-weight: 500;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease,
+    transform 0.1s ease;
+}
+
+/* 누르는 순간 살짝 눌림 */
+.chip:active {
+  transform: scale(0.96);
 }
 
 .chip-selected {
   background-color: var(--dumpy-orange);
-  color: white;
+  border-color: var(--dumpy-orange);
+  color: #FFFFFF;
 }
 
 .chip-unselected {
   background-color: var(--paper);
-  color: var(--ink);
-  border: 1px solid rgba(36, 28, 20, 0.2);
+  border-color: var(--line);
+  color: var(--muted);
 }
+
+.chip-unselected:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+/* 체크박스 — 완료 표시도 중립 잉크로 */
+.checkbox {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background-color: var(--paper);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.checkbox:hover {
+  border-color: var(--ink);
+}
+
+.checkbox-checked {
+  background-color: var(--ink);
+  border-color: var(--ink);
+  color: #FFFFFF;
+}
+
+/* 토스트 */
+.toast {
+  background-color: var(--ink);
+  color: #FFFFFF;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-soft);
+}
+
+} /* @layer components */
 
 /* 애니메이션 - 저장 시 효과 */
 @keyframes dump-in {
@@ -98,11 +310,8 @@ body {
 
 @keyframes pop-out {
   0% {
-    transform: scale(0);
+    transform: scale(0.96);
     opacity: 0;
-  }
-  70% {
-    transform: scale(1.1);
   }
   100% {
     transform: scale(1);
@@ -110,12 +319,39 @@ body {
   }
 }
 
-/* 애니메이션 줄이기 설정 존중 */
-@media (prefers-reduced-motion: reduce) {
-  .animate-dump-in,
-  .animate-pop-out {
-    animation: none !important;
+/* 새 메모 등장 — 아래에서 살짝 튀어 올라옴.
+   DOM 노드가 새로 생길 때만 재생되므로, 저장한 메모 하나에만 걸린다.
+   fill-mode를 주지 않아야 끝난 뒤 .tile:hover의 transform이 정상 동작한다. */
+@keyframes memo-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.memo-in {
+  animation: memo-in 0.2s ease-out;
+}
+
+/* 할 일 완료 — 줄이 그어진 채로 잠깐 머물다 사라진다.
+   .memo-in 보다 뒤에 와야 두 클래스가 겹쳤을 때 이쪽이 이긴다. */
+@keyframes memo-out {
+  0%,
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.memo-leaving {
+  animation: memo-out 0.3s ease-in forwards;
+  pointer-events: none;
 }
 
 .animate-dump-in {
@@ -123,5 +359,28 @@ body {
 }
 
 .animate-pop-out {
-  animation: pop-out 0.3s ease-out forwards;
+  animation: pop-out 0.2s ease-out forwards;
+}
+
+/* 애니메이션 줄이기 설정 존중 — 움직임은 전부 생략한다.
+   0으로 죽이지 않고 0.01ms로 두는 이유: animationend / transitionend 를
+   기다리는 코드가 있어도 그대로 발화되기 때문.
+   forwards가 걸린 .memo-leaving 도 끝 상태(opacity 0)에 즉시 도달한다.
+   이 블록은 파일 맨 끝에 둬야 위의 모든 규칙을 덮는다. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* 시간을 0으로 만들어도 위치는 옮겨지므로 변형 자체를 없앤다 */
+  .card:hover,
+  .tile:hover,
+  .chip:active {
+    transform: none !important;
+  }
 }

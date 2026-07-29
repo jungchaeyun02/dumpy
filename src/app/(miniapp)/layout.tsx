@@ -38,7 +38,7 @@ export default function MiniAppLayout({
         <script src="https://static.toss.im/apps/sdk/1.0/sdk.min.js" defer />
       </head>
       <body
-        className="min-h-full flex flex-col bg-cream text-ink"
+        className="min-h-full flex flex-col bg-canvas text-ink"
         style={{
           // Safe Area 패딩
           paddingTop: 'env(safe-area-inset-top)',

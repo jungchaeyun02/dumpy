@@ -1,0 +1,27 @@
+{
+  "name": "덤피 - 생각날 땐 그냥 덤프해!",
+  "short_name": "덤피",
+  "description": "기록 시점에는 아무것도 묻지 않고, 저장된 내용을 자동 분류해주는 메모 서비스",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFF6E5",
+  "theme_color": "#FF6B1A",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "lang": "ko",
+  "dir": "ltr"
+}

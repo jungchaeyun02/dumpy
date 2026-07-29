@@ -1,0 +1,50 @@
+// Dumpy 데이터베이스 스키마
+// 개발: SQLite / 프로덕션: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"  // 프로덕션에서는 "postgresql"로 변경
+  url      = env("DATABASE_URL")
+}
+
+// 사용자
+model User {
+  id              String   @id @default(cuid())
+  provider        String   // "toss" | "web"
+  providerUserId  String
+  agreedAt        DateTime
+  ageConfirmedAt  DateTime
+  createdAt       DateTime @default(now())
+
+  memos Memo[]
+
+  @@unique([provider, providerUserId])
+  @@map("users")
+}
+
+// 메모
+model Memo {
+  id           String    @id @default(cuid())
+  userId       String
+  content      String
+  category     String    // "todo" | "diary" | "collected" | "etc"
+  classifiedBy String    // "auto" | "manual"
+  autoCategory String?
+  confidence   Float     @default(0)
+  hasDeadline  Boolean   @default(false)
+  isDone       Boolean   @default(false)
+  doneAt       DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, category])
+  @@index([userId, deletedAt])
+  @@map("memos")
+}

@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+:root {
+  /* Dumpy Brand Colors */
+  --dumpy-orange: #FF6B1A;
+  --dumpy-yellow: #FFC53D;
+  --cream: #FFF6E5;
+  --paper: #FFFFFF;
+  --ink: #241C14;
+  --pop: #6C4CF1;
+
+  --background: var(--cream);
+  --foreground: var(--ink);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-dumpy-orange: var(--dumpy-orange);
+  --color-dumpy-yellow: var(--dumpy-yellow);
+  --color-cream: var(--cream);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-pop: var(--pop);
+
+  /* Border radius - 둥근 모서리 */
+  --radius-card: 16px;
+  --radius-button: 24px;
+  --radius-chip: 9999px;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+/* 버튼 및 칩 공통 스타일 */
+.btn-primary {
+  background-color: var(--dumpy-orange);
+  color: white;
+  border-radius: var(--radius-button);
+  padding: 12px 24px;
+  font-weight: 600;
+  transition: transform 0.1s ease;
+}
+
+.btn-primary:hover {
+  transform: scale(1.02);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+/* 카드 스타일 */
+.card {
+  background-color: var(--paper);
+  border-radius: var(--radius-card);
+  box-shadow: 4px 4px 0 rgba(36, 28, 20, 0.1);
+}
+
+/* 분류 칩 스타일 */
+.chip {
+  border-radius: var(--radius-chip);
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.chip-selected {
+  background-color: var(--dumpy-orange);
+  color: white;
+}
+
+.chip-unselected {
+  background-color: var(--paper);
+  color: var(--ink);
+  border: 1px solid rgba(36, 28, 20, 0.2);
+}
+
+/* 애니메이션 - 저장 시 효과 */
+@keyframes dump-in {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(0) translateY(-20px);
+    opacity: 0;
+  }
+}
+
+@keyframes pop-out {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 애니메이션 줄이기 설정 존중 */
+@media (prefers-reduced-motion: reduce) {
+  .animate-dump-in,
+  .animate-pop-out {
+    animation: none !important;
+  }
+}
+
+.animate-dump-in {
+  animation: dump-in 0.4s ease-out forwards;
+}
+
+.animate-pop-out {
+  animation: pop-out 0.3s ease-out forwards;
+}

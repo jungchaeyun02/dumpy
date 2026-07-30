@@ -6,6 +6,7 @@
 
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth/middleware';
+import { isAdmin } from '@/lib/auth/admin';
 import { clearSessionCookie } from '@/lib/auth/session';
 import { deleteAllUserData } from '@/lib/db/memos';
 
@@ -59,6 +60,10 @@ export async function GET(request: NextRequest) {
     data: {
       userId: session.userId,
       provider: session.provider,
+      // 관리자 화면 링크를 보여줄지 판단하는 데만 쓴다.
+      // 이 값이 true 라고 뭐가 열리는 게 아니라, 관리자 라우트가 각자
+      // 다시 확인한다 (/admin 은 404, /api/admin/* 도 404)
+      isAdmin: isAdmin(session.userId),
     },
   });
 }

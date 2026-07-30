@@ -66,6 +66,9 @@ export default function Home() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // 관리자에게만 푸터에 링크를 하나 더 보여준다. 이 값이 새는 게 권한이
+  // 새는 건 아니다 - /admin 과 /api/admin/* 은 각자 다시 확인해서 404 를 낸다
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // 메모 목록 불러오기
   const fetchMemos = useCallback(async () => {
@@ -115,6 +118,30 @@ export default function Home() {
   useEffect(() => {
     fetchMemos();
   }, [fetchMemos]);
+
+  // 관리자 여부는 세션을 아는 서버만 판단할 수 있다.
+  // 메모 목록과 따로 받는다 - 링크 하나 때문에 메모가 늦게 뜨면 안 된다
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch('/api/me');
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (!cancelled) setIsAdmin(data.success === true && data.data?.isAdmin === true);
+      } catch {
+        // 실패해도 링크 하나 안 보이는 것뿐이라 조용히 넘어간다
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn]);
 
   // 메모 저장
   const handleSave = async (content: string, category: Category | null) => {
@@ -217,10 +244,18 @@ export default function Home() {
         {/* 히어로 — 로고 · 카피 · 로그인을 한 덩어리로 묶어 첫 화면 세로 중앙에 */}
         <main className="min-h-dvh flex items-center justify-center px-6 py-16">
           <div className="w-full max-w-[400px] flex flex-col items-center gap-8">
-            {/* 로고 */}
+            {/* 로고 — 이모지와 이름은 가운데 정렬, 이름과 라벨만 기준선 정렬.
+                안쪽 flex 를 따로 두는 이유: 바깥까지 items-baseline 으로 바꾸면
+                56px 이모지가 이름 기준선에 끌려가 위치가 틀어진다 */}
             <div className="flex items-center gap-2">
               <span className="text-[56px] leading-none" aria-hidden="true">{dumpyEmoji}</span>
-              <h1 className="text-3xl font-bold tracking-tight text-ink">덤피</h1>
+              <div className="flex items-baseline gap-2">
+                <h1 className="text-3xl font-bold tracking-tight text-ink">덤피</h1>
+                {/* 좁은 화면에서는 숨긴다 - 로고가 줄바꿈되거나 잘리는 게 더 나쁘다 */}
+                <span className="hidden sm:inline text-meta font-normal text-muted">
+                  자동 분류 메모장
+                </span>
+              </div>
             </div>
 
             {/* 대표 문구 — 둘째 줄만 주황 */}
@@ -368,6 +403,9 @@ export default function Home() {
             {messages.logout}
           </button>
           <button className="link-quiet">탈퇴</button>
+          {isAdmin && (
+            <a href="/admin" className="link-quiet">관리자</a>
+          )}
         </div>
       </footer>
     </div>

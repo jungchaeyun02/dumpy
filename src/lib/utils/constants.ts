@@ -4,6 +4,24 @@ export const MEMO_MAX_LENGTH = 5000;
 // 요청 제한 (분당)
 export const RATE_LIMIT_PER_MINUTE = 60;
 
+// 로그인·가입 요청 제한 (IP당 분당)
+//
+// 메모 저장(60회)보다 낮게 잡는다. 비밀번호를 바꿔가며 찔러보는
+// 대입 공격을 막는 게 목적이다. 분당 20회면 하루 3만 번인데, 8자 이상
+// 비밀번호를 맞히기엔 턱없이 부족하므로 이 정도로 충분하다.
+//
+// 더 낮추지 않는 이유: 아이디 오타나 짧은 비밀번호처럼 형식에서 걸린
+// 요청도 횟수를 깎기 때문에, 한도가 너무 촘촘하면 몇 번 헛손질한
+// 정상 사용자가 1분간 막힌다.
+export const AUTH_RATE_LIMIT_PER_MINUTE = 20;
+
+// 자체 로그인 아이디·비밀번호 제한
+export const USERNAME_MIN_LENGTH = 3;
+export const USERNAME_MAX_LENGTH = 20;
+export const PASSWORD_MIN_LENGTH = 8;
+// 위쪽 한도가 없으면 아주 긴 비밀번호로 해싱 부하를 걸 수 있다
+export const PASSWORD_MAX_LENGTH = 72;
+
 // 세션/토큰 설정
 export const TOKEN_EXPIRY_DAYS = 30;
 export const SESSION_EXPIRY_DAYS = 30;

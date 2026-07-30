@@ -50,6 +50,9 @@ certs/
 *.sqlite
 *.sqlite3
 
+# DB 백업 (메모 내용과 비밀번호 해시가 들어있음 - 올리지 말 것)
+prisma/dev-db-backup.json
+
 # vercel
 .vercel
 

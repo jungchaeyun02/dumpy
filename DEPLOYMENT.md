@@ -30,9 +30,8 @@ TOSS_MTLS_KEY_PATH="/path/to/key.pem"
 
 ### 2. 데이터베이스 설정
 
-PostgreSQL만 지원합니다. Prisma는 `provider`를 환경변수로 바꿀 수 없어서
-(리터럴이어야 함) 개발·프로덕션이 같은 종류를 써야 합니다.
-Vercel은 파일시스템이 휘발성이라 SQLite는 배포마다 데이터가 사라집니다.
+배포는 **PostgreSQL만** 지원합니다. Vercel은 파일시스템이 휘발성이라
+SQLite로 배포하면 배포마다 데이터가 사라집니다.
 
 ```bash
 # 스키마를 DB에 반영 (기존 마이그레이션을 그대로 적용)
@@ -40,6 +39,33 @@ npm run db:deploy
 
 # 스키마를 고쳐서 새 마이그레이션을 만들 때만
 npm run db:migrate
+```
+
+#### 로컬은 SQLite, 배포는 PostgreSQL
+
+Prisma는 `provider`를 환경변수로 받지 못합니다 (반드시 리터럴). 그래서
+로컬에서 Postgres를 띄우지 않고 개발하려면 `schema.prisma`를 갈아끼워야 합니다.
+
+**손으로 고치지 마세요.** datasource만 되돌리려다 model에 있는 필드까지
+같이 날아갑니다. `git checkout prisma/schema.prisma`가 특히 위험합니다 —
+그동안 추가한 필드(`passwordHash` 등)가 전부 사라집니다.
+
+```bash
+# 로컬 개발용 (SQLite). DATABASE_URL="file:./dev.db"
+npm run db:local
+
+# 배포용 (PostgreSQL). 커밋 전에 반드시 이 상태로
+npm run db:cloud
+```
+
+`scripts/use-datasource.js`가 datasource 블록 하나만 교체하므로 model은
+건드리지 않습니다. `npm run db:local`은 개발 서버를 끄고 실행하세요 —
+서버가 Prisma 엔진 파일을 잡고 있으면 클라이언트 재생성이 `EPERM`으로 실패합니다.
+
+배포 전 확인:
+
+```bash
+grep 'provider = ' prisma/schema.prisma   # postgresql 이어야 한다
 ```
 
 ### 3. 빌드 및 실행
@@ -63,7 +89,16 @@ Prisma Client가 항상 생성되도록 보장합니다. 이 두 줄이 없으�
 
 - [ ] 클라이언트가 보낸 식별자로 메모를 조회하는 코드가 **한 줄도 없음**
 - [ ] 식별자는 서버가 인증 서버에 직접 물어 받은 값만 사용
+      (자체 로그인은 서버가 비밀번호를 검증한 뒤 발급한 JWT에서만 꺼냄)
 - [ ] 미니앱은 토큰, 웹은 쿠키로 세션 관리
+
+### 자체 로그인 (아이디·비밀번호)
+
+- [ ] 비밀번호가 평문으로 저장되거나 로그에 남는 곳이 없음 (scrypt 해시만)
+- [ ] 비밀번호 비교가 `timingSafeEqual` — `===` 는 걸린 시간으로 앞자리를 유추할 수 있음
+- [ ] 로그인 실패 문구가 "없는 아이디"와 "틀린 비밀번호"를 구분하지 않음
+- [ ] 없는 아이디로 시도해도 응답 시간이 비슷함 (더미 해시로 같은 비용을 치름)
+- [ ] 로그인·가입에 IP 기준 요청 제한이 걸려 있음
 
 ### 인가
 

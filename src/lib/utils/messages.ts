@@ -79,6 +79,24 @@ export const messages = {
   contentTooLong: '너무 길어! 5,000자까지만 담을 수 있어',
   rateLimited: '잠깐만, 조금 천천히 던져줘',
 
+  // 자체 로그인 — 카카오 없이 아이디·비밀번호로 들어오는 길
+  localAuth: {
+    divider: '또는',
+    loginTitle: '아이디로 들어오기',
+    signupTitle: '아이디 만들기',
+    usernameLabel: '아이디',
+    usernamePlaceholder: '영문 소문자, 숫자, 밑줄',
+    passwordLabel: '비밀번호',
+    passwordPlaceholder: '8자 이상',
+    loginButton: '들어가기',
+    signupButton: '만들고 시작하기',
+    toSignup: '아이디가 없어? 만들기',
+    toLogin: '이미 있어? 로그인',
+    // 이메일을 받지 않으니 되찾아 줄 방법이 없다. 만들기 화면에서 미리 알린다.
+    noRecoveryNotice: '이메일을 안 받아서 비밀번호를 잊으면 찾아줄 수 없어. 꼭 기억해줘!',
+    failed: '앗, 안 됐어. 한 번만 다시 해줘',
+  },
+
   // 로그아웃 — 메모는 그대로 두고 세션만 끊는다
   logout: '로그아웃',
   logoutDone: '다음에 또 보자!',

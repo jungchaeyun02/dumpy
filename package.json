@@ -11,6 +11,8 @@
     "lint": "eslint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
+    "db:local": "node scripts/use-datasource.js sqlite && prisma db push",
+    "db:cloud": "node scripts/use-datasource.js postgresql",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio"

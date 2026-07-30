@@ -5,9 +5,12 @@ export type Category = '할일' | '일기' | '모아둔것' | '그외';
 export type ClassifiedBy = 'auto' | 'manual';
 
 // 인증 제공자
-export type Provider = 'toss' | 'web';
+// 'toss' 미니앱, 'web' 카카오, 'local' 아이디·비밀번호 자체 로그인
+export type Provider = 'toss' | 'web' | 'local';
 
 // 사용자 타입
+// passwordHash 는 서버 안에서만 다루는 값이라 여기에 넣지 않는다.
+// 필요한 곳에서는 Prisma 가 만든 타입을 직접 쓴다.
 export interface User {
   id: string;
   provider: Provider;

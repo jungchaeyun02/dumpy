@@ -25,8 +25,11 @@ datasource db {
 // 사용자
 model User {
   id              String   @id @default(cuid())
-  provider        String   // "toss" | "web"
-  providerUserId  String
+  provider        String   // "toss" | "web" | "local"
+  providerUserId  String   // local 이면 사용자가 정한 아이디 (소문자로 정규화해서 저장)
+  // local 로그인용 비밀번호. scrypt 해시이며 평문은 어디에도 남기지 않는다.
+  // toss·web 은 인증 서버가 신원을 보증하므로 null 이다.
+  passwordHash    String?
   agreedAt        DateTime
   ageConfirmedAt  DateTime
   createdAt       DateTime @default(now())

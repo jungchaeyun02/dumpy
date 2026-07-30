@@ -4,6 +4,7 @@ import { Fragment, useState, useEffect, useCallback } from 'react';
 import { MemoInput } from '@/components/memo/MemoInput';
 import { MemoSection } from '@/components/memo/MemoCard';
 import { LoginPreview } from '@/components/ui/LoginPreview';
+import { LocalAuthForm } from '@/components/ui/LocalAuthForm';
 import { dumpyEmoji, messages } from '@/lib/utils/messages';
 import type { Category } from '@/types';
 import type { Memo } from '@prisma/client';
@@ -238,6 +239,10 @@ export default function Home() {
                 <KakaoIcon />
                 카카오로 시작하기
               </a>
+
+              {/* 카카오 없이 들어오는 길 — 아이디·비밀번호.
+                  기본은 접혀 있고 눌러야 펴진다 */}
+              <LocalAuthForm />
 
               {/* 개발용 로그인 — 프로덕션 빌드에서는 통째로 제거된다 */}
               {IS_DEV && (

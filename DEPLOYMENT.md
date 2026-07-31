@@ -127,8 +127,6 @@ Prisma Client가 항상 생성되도록 보장합니다. 이 두 줄이 없으�
 
 ### 필수 항목
 
-- [ ] `granite.config.ts`의 `appName`이 콘솔 등록값과 일치
-- [ ] `granite.config.ts`의 아이콘 URL이 콘솔 등록값과 일치
 - [ ] 번들 크기 100MB 이하
 - [ ] HTTPS 통신만 사용
 - [ ] 라이트 모드만 지원

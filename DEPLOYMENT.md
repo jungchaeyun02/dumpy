@@ -249,6 +249,56 @@ ADMIN_USER_ID = 관리자로 쓸 계정의 User.id
 > `개발용 로그인` 만으로 `/admin` 을 확인할 수 있습니다. 배포 환경변수는
 > 별개이므로 영향이 없습니다.
 
+**8) 토스 미니앱에서 API 부르게 하기**
+
+미니앱은 `tossmini.com` 쪽 도메인에서 뜨고 이 서버의 `/api` 를 부릅니다.
+브라우저에게는 교차 출처 요청이라 허용 목록이 필요합니다.
+
+```
+TOSS_ALLOWED_ORIGINS = https://memoindumpy.apps.tossmini.com,https://memoindumpy.private-apps.tossmini.com
+```
+
+쉼표로 구분하고 **끝 슬래시는 붙이지 않습니다**. 목록에 정확히 같은 문자열로
+있는 Origin 만 그대로 되돌려주고, 나머지는 CORS 헤더 없이 나갑니다.
+`ADMIN_USER_ID` 와 마찬가지로 모듈 로드 시점에 한 번 읽으므로 **바꾸면
+재배포해야 적용됩니다**.
+
+여는 경로는 `src/proxy.ts` 의 `matcher` 에 적힌 것뿐입니다 — `/api/memos/*`,
+`/api/me/*`, `/api/auth/toss/*`. `/api/admin/*` 과 카카오·자체 로그인 경로는
+일부러 빠져 있습니다. matcher 를 `/api/:path*` 로 넓히지 마세요.
+
+> CORS 는 인증이 아닙니다. 브라우저가 응답을 스크립트에 넘겨줄지만 정할 뿐,
+> 요청이 서버에 닿는 것은 못 막습니다 (curl 은 목록과 무관하게 들어옵니다).
+> 누가 무엇을 볼 수 있는지는 여전히 각 라우트의 `requireAuth` 가 정합니다.
+
+**9) 임시 테스트 로그인 (토스 인증 붙기 전까지만)**
+
+토스 인증 연동 전에 미니앱에서 API 를 붙여보기 위한 임시 통로입니다.
+**Preview / Development 에만 넣고 Production 에는 넣지 않습니다.**
+
+```
+ALLOW_TOSS_TEST   = 1                (Preview, Development 만)
+TOSS_TEST_USER_ID = toss_test_user   (Preview, Development 만)
+```
+
+`ALLOW_TOSS_TEST` 가 없으면 `POST /api/auth/toss/test` 는 401 로 거부합니다.
+값이 있어도 `VERCEL_ENV=production` 이면 거부합니다 — Production 에 실수로
+넣는 날을 위한 두 번째 잠금입니다.
+
+```bash
+curl -X POST https://<preview-주소>/api/auth/toss/test
+# → {"success":true,"data":{"token":"eyJ...","userId":"c..."}}
+```
+
+받은 `token` 을 `Authorization: Bearer <token>` 으로 붙이면 메모 API 가 열립니다.
+
+> Preview 와 Production 이 같은 `DATABASE_URL` 을 쓰고 있다면, 이 통로로
+> 만들어지는 테스트 사용자와 그 메모가 **운영 DB 에 그대로 쌓입니다.**
+> 신경 쓰인다면 Preview 용 DB 를 따로 두세요.
+
+토스 인증이 붙으면 `src/app/api/auth/toss/test/route.ts` 와 이 두 환경변수를
+함께 지웁니다.
+
 ### 자체 서버
 
 ```bash

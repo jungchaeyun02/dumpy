@@ -21,20 +21,15 @@ KAKAO_CLIENT_ID="카카오 개발자 콘솔에서 발급"
 KAKAO_CLIENT_SECRET="카카오 개발자 콘솔에서 발급"
 KAKAO_REDIRECT_URI="https://your-domain.com/api/auth/kakao/callback"
 
-# 미니앱 (토스)
-TOSS_APP_ID="앱인토스 콘솔에서 발급"
-TOSS_API_SECRET="앱인토스 콘솔에서 발급"
-
-# mTLS 인증서 - 경로가 아니라 PEM 내용을 통째로 넣는다.
-# Vercel 은 배포마다 파일시스템이 새로 뜨므로 경로 방식은 프로덕션에서 동작하지 않는다.
-# 대시보드에 여러 줄 그대로 붙여넣어도 되고, 줄바꿈을 \n 으로 바꿔 한 줄로 넣어도 된다.
-TOSS_MTLS_CERT="-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
-TOSS_MTLS_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+# 미니앱 (토스) - 아래 "TOSS_HASH_SECRET" 항목을 먼저 읽으세요. 한 번 정하면 못 바꿉니다.
+TOSS_HASH_SECRET="openssl rand -hex 32 로 만든 64자리 hex"
 ```
 
-> 인증서 두 값은 Production 스코프에만 넣는다. Preview 배포는 URL 이 배포마다
-> 바뀌어서 앱인토스에 등록된 주소와 맞지 않고, 개인키를 굳이 여러 환경에
-> 복제해 둘 이유도 없다.
+> `TOSS_MTLS_CERT` / `TOSS_MTLS_KEY` / `TOSS_APP_ID` / `TOSS_API_SECRET` 은
+> 더 이상 쓰지 않습니다. 그 값들을 읽던 `/api/auth/toss` 와
+> `/api/auth/toss/callback` 을 지웠습니다. Vercel 에 남아 있다면 지워도 됩니다.
+> 지금 미니앱 로그인은 `POST /api/auth/toss/verify` 하나뿐이고, 클라이언트
+> 인증서 없이 미니앱이 보낸 hash 만 받습니다.
 
 ### 2. 데이터베이스 설정
 
@@ -277,33 +272,62 @@ TOSS_ALLOWED_ORIGINS = https://memoindumpy.apps.tossmini.com,https://memoindumpy
 > 요청이 서버에 닿는 것은 못 막습니다 (curl 은 목록과 무관하게 들어옵니다).
 > 누가 무엇을 볼 수 있는지는 여전히 각 라우트의 `requireAuth` 가 정합니다.
 
-**9) 임시 테스트 로그인 (토스 인증 붙기 전까지만)**
-
-토스 인증 연동 전에 미니앱에서 API 를 붙여보기 위한 임시 통로입니다.
-**Preview / Development 에만 넣고 Production 에는 넣지 않습니다.**
+**9) TOSS_HASH_SECRET — 잃어버리면 복구할 수 없는 값**
 
 ```
-ALLOW_TOSS_TEST   = 1                (Preview, Development 만)
-TOSS_TEST_USER_ID = toss_test_user   (Preview, Development 만)
+TOSS_HASH_SECRET = <openssl rand -hex 32 로 만든 64자리 hex>   (Production)
 ```
 
-`ALLOW_TOSS_TEST` 가 없으면 `POST /api/auth/toss/test` 는 401 로 거부합니다.
-값이 있어도 `VERCEL_ENV=production` 이면 거부합니다 — Production 에 실수로
-넣는 날을 위한 두 번째 잠금입니다.
+미니앱 로그인은 토스가 준 `hash` 를 `POST /api/auth/toss/verify` 로 받습니다.
+그 값을 DB 에 그대로 넣지 않고 `HMAC-SHA256(TOSS_HASH_SECRET, hash)` 를
+`users.providerUserId` 에 저장합니다. DB 가 통째로 새더라도 어느 값을 보내야
+그 계정이 되는지 알 수 없게 하려는 것입니다.
+
+> ### ⚠️ 이 값을 잃거나 바꾸면 모든 토스 계정이 영구히 끊깁니다
+>
+> 같은 사람이 같은 `hash` 를 보내도 계산 결과가 달라져, 자기 메모가 붙어 있는
+> 행 대신 **빈 계정으로 새로 가입됩니다.** 예전 메모는 DB 에 남아 있지만 어느
+> 계정의 것인지 이어붙일 방법이 없습니다.
+>
+> `hash` 는 토스가 사용자마다 고정으로 주는 값이라, 원래 시크릿을 되찾는 것
+> 말고는 복구 수단이 없습니다. 비밀번호 재설정 같은 우회로가 존재하지 않습니다.
+>
+> 그래서:
+> - **비밀번호 관리자에 따로 보관하세요.** Vercel 대시보드는 한 번 저장한 값을
+>   다시 보여주지 않습니다. Vercel 에만 있는 상태 = 백업이 없는 상태입니다.
+> - **`JWT_SECRET` 과 같은 값을 쓰지 마세요.** JWT 시크릿은 유출되면 갈아끼워야
+>   하는 값인데, 이건 갈아끼울 수 없습니다. 수명이 다릅니다.
+> - **Production 스코프에만 넣으세요.** Preview 가 같은 DB 를 쓰는데 시크릿이
+>   다르면, 같은 사람이 환경마다 다른 계정으로 갈립니다.
+> - 값을 안 넣으면 verify 는 503 을 돌려줍니다. 조용히 예전 방식으로 저장하느니
+>   로그인이 막히는 쪽이 낫다고 보고 그렇게 두었습니다.
+
+**기존 토스 계정 이전**
+
+이미 `hash` 를 그대로 저장한 계정이 있다면, **코드를 배포하기 전에** 옮겨야
+합니다. 배포부터 하면 기존 사용자가 접속하는 순간 빈 계정이 새로 만들어지고,
+그 뒤에는 어느 행이 원본인지 구분할 수 없게 됩니다.
 
 ```bash
-curl -X POST https://<preview-주소>/api/auth/toss/test
-# → {"success":true,"data":{"token":"eyJ...","userId":"c..."}}
+# 0. DB 백업 (Supabase 대시보드 > Database > Backups)
+
+# 1. 시크릿을 정해 .env 에 넣는다. Vercel 에 넣을 값과 반드시 같아야 한다
+openssl rand -hex 32
+
+# 2. 미리보기 — 아무것도 바꾸지 않는다
+npx tsx scripts/migrate-toss-hash.ts
+
+# 3. 실제 반영
+npx tsx scripts/migrate-toss-hash.ts --commit
+
+# 4. 그 다음에 Vercel 에 TOSS_HASH_SECRET 을 넣고 배포한다
 ```
 
-받은 `token` 을 `Authorization: Bearer <token>` 으로 붙이면 메모 API 가 열립니다.
+메모는 `User.id` 를 보고 붙어 있고 `id` 는 바뀌지 않으므로, 이전 후에도 메모는
+그대로 따라옵니다. 바뀌는 것은 `providerUserId` 뿐입니다.
 
-> Preview 와 Production 이 같은 `DATABASE_URL` 을 쓰고 있다면, 이 통로로
-> 만들어지는 테스트 사용자와 그 메모가 **운영 DB 에 그대로 쌓입니다.**
-> 신경 쓰인다면 Preview 용 DB 를 따로 두세요.
-
-토스 인증이 붙으면 `src/app/api/auth/toss/test/route.ts` 와 이 두 환경변수를
-함께 지웁니다.
+토스 계정이 아직 없다면(테스트만 했다면) 이전 없이 시크릿만 넣고 배포하면
+됩니다. 스크립트는 대상이 없으면 아무것도 하지 않습니다.
 
 ### 자체 서버
 

@@ -21,6 +21,7 @@
  */
 
 import { NextRequest } from 'next/server';
+import { createHmac } from 'node:crypto';
 import { findOrCreateUser } from '@/lib/db/users';
 import { createToken } from '@/lib/auth/session';
 import { checkAuthRateLimit } from '@/lib/auth/rateLimit';
@@ -160,6 +161,16 @@ export async function POST(request: NextRequest) {
       data: { token, userId: user.id },
     });
   } catch (error) {
+    // 시크릿이 없으면 아무도 로그인할 수 없다. 다시 시도해도 소용없는 상태라
+    // 500 이 아니라 503 으로 내보내고, 로그에서 바로 눈에 띄게 남긴다.
+    if (error instanceof MissingSecretError) {
+      console.error(
+        '[toss/verify] TOSS_HASH_SECRET 이 설정되지 않았다. ' +
+          '이 값이 없으면 토스 로그인이 전부 막힌다.'
+      );
+      return fail('로그인을 잠시 쓸 수 없어. 잠시 뒤에 다시 해줘', 503);
+    }
+
     console.error(
       '토스 로그인 처리 실패:',
       error instanceof Error ? error.message : error
@@ -171,29 +182,37 @@ export async function POST(request: NextRequest) {
 /**
  * hash 를 DB 에 저장할 providerUserId 로 바꾼다
  *
- * 지금은 그대로 쓴다. 즉 users.providerUserId 에 들어 있는 값은 그 자체로
- * 로그인에 쓸 수 있는 값이다 — DB 가 새면 전 계정의 로그인 수단이 함께 샌다.
+ * HMAC-SHA256(TOSS_HASH_SECRET, hash) 의 hex 를 저장한다. 단방향이라 저장된
+ * 값에서 hash 를 되돌릴 수 없고, 시크릿 없이는 어느 값을 보내야 그 계정이
+ * 되는지도 알 수 없다. DB 를 통째로 들고 나가도 로그인 수단은 따라가지 않는다.
  *
- * 여기서 HMAC(서버 시크릿, hash) 로 바꾸면 그 성질이 사라진다. DB 를 통째로
- * 들고 나가도 시크릿 없이는 어느 hash 를 보내야 그 계정이 되는지 알 수 없다.
- * 대신 두 가지가 따라온다:
- *   - 기존 toss 계정 행을 전부 다시 계산해 넣어야 한다 (지금이 가장 쌀 때다)
- *   - 그 시크릿을 잃어버리면 모든 toss 계정이 영영 끊긴다. JWT_SECRET 과
- *     같은 값을 쓰면 안 된다. JWT 시크릿은 언젠가 갈아끼울 수 있어야 하는데
- *     이건 못 갈아끼우는 값이라 수명이 다르다.
+ * 평범한 해시(SHA-256) 가 아니라 HMAC 인 이유: hash 의 후보 공간이 좁으면
+ * 그냥 해시는 미리 계산해둔 표로 뒤집힌다. 시크릿이 그 표를 못 만들게 한다.
  *
- * 켤지는 판단 후에. 함수 하나만 바꾸면 되도록 자리를 만들어둔 것이다.
+ * ⚠️ TOSS_HASH_SECRET 은 한 번 정하면 못 바꾸는 값이다. 바꾸는 순간 기존
+ *    사용자 전원이 다른 providerUserId 로 계산되어 빈 계정으로 새로 가입된다.
+ *    JWT_SECRET 과 같은 값을 쓰지 말 것 — JWT 시크릿은 갈아끼울 수 있어야
+ *    하는데 이건 그럴 수 없어서 수명이 다르다.
+ *
+ * 시크릿이 없으면 던진다. 없는 채로 넘어가면 hash 를 그대로 저장하던 예전
+ * 동작으로 조용히 돌아가는 셈이라, 그 쪽이 훨씬 나쁘다.
  */
 function deriveProviderUserId(hash: string): string {
-  return hash;
+  const secret = process.env.TOSS_HASH_SECRET?.trim();
+  if (!secret) throw new MissingSecretError();
 
-  /* HMAC 로 바꾸는 경우:
-
-  import { createHmac } from 'node:crypto';   // 파일 상단으로
-
-  const secret = process.env.TOSS_ID_HMAC_SECRET;
-  if (!secret) throw new Error('TOSS_ID_HMAC_SECRET 미설정');
   return createHmac('sha256', secret).update(hash).digest('hex');
+}
 
-  */
+/**
+ * TOSS_HASH_SECRET 미설정.
+ *
+ * 사용자 잘못이 아니라 배포 설정 문제라서, POST 의 catch 에서 500 이 아니라
+ * 503 으로 갈라 내보내려고 따로 둔다.
+ */
+class MissingSecretError extends Error {
+  constructor() {
+    super('TOSS_HASH_SECRET 미설정');
+    this.name = 'MissingSecretError';
+  }
 }

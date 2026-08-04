@@ -30,7 +30,10 @@
       "Bash(npm run *)",
       "Bash(npx --no-install vercel whoami)",
       "PowerShell(Get-NetTCPConnection *)",
-      "Bash(npx prisma *)"
+      "Bash(npx prisma *)",
+      "Bash(grep *)",
+      "Bash(npx tsc *)",
+      "PowerShell(npx tsc --noEmit)"
     ]
   }
 }

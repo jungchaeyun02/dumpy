@@ -212,12 +212,6 @@ export default function MiniAppHome() {
     setSelectedCategory(null);
   };
 
-  // 토스 로그인
-  const handleTossLogin = () => {
-    // 실제 구현: 토스 SDK의 로그인 API 호출
-    window.location.href = '/api/auth/toss';
-  };
-
   // 로딩 중
   if (isLoading) {
     return (
@@ -240,9 +234,20 @@ export default function MiniAppHome() {
             </div>
           </div>
           <p className="text-body text-muted mb-8">{messages.onboarding}</p>
-          <button onClick={handleTossLogin} className="btn-primary">
-            시작하기
-          </button>
+          {/*
+            로그인 버튼이 없는 이유:
+            이 페이지는 토스 앱 안이 아니라 일반 브라우저에서 열리는 화면이다.
+            토스 로그인은 미니앱(dumpy_toss)이 getAnonymousKey() 로 받은 hash 를
+            POST /api/auth/toss/verify 로 보내는 방식인데, 그 브릿지는 토스 앱
+            웹뷰에만 있어서 여기서는 부를 수가 없다.
+
+            예전에는 /api/auth/toss 로 보내는 버튼이 있었지만, 그 경로가
+            리다이렉트하던 주소는 실제 토스 인증 주소가 아니라 자리표시자였다.
+            눌러도 되는 일이 없어서 경로와 함께 걷어냈다.
+
+            이 화면에 로그인을 붙이려면 수단을 먼저 정해야 한다
+            (카카오 로그인으로 보내기 / 자체 로그인 / 이 페이지를 내리기).
+          */}
         </div>
 
         <footer className="px-6 py-8 text-center text-meta text-muted">

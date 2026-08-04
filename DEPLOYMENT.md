@@ -24,9 +24,17 @@ KAKAO_REDIRECT_URI="https://your-domain.com/api/auth/kakao/callback"
 # 미니앱 (토스)
 TOSS_APP_ID="앱인토스 콘솔에서 발급"
 TOSS_API_SECRET="앱인토스 콘솔에서 발급"
-TOSS_MTLS_CERT_PATH="/path/to/cert.pem"
-TOSS_MTLS_KEY_PATH="/path/to/key.pem"
+
+# mTLS 인증서 - 경로가 아니라 PEM 내용을 통째로 넣는다.
+# Vercel 은 배포마다 파일시스템이 새로 뜨므로 경로 방식은 프로덕션에서 동작하지 않는다.
+# 대시보드에 여러 줄 그대로 붙여넣어도 되고, 줄바꿈을 \n 으로 바꿔 한 줄로 넣어도 된다.
+TOSS_MTLS_CERT="-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+TOSS_MTLS_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
 ```
+
+> 인증서 두 값은 Production 스코프에만 넣는다. Preview 배포는 URL 이 배포마다
+> 바뀌어서 앱인토스에 등록된 주소와 맞지 않고, 개인키를 굳이 여러 환경에
+> 복제해 둘 이유도 없다.
 
 ### 2. 데이터베이스 설정
 
